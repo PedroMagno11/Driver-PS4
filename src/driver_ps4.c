@@ -1,13 +1,21 @@
 #include "driver_ps4.h"
 #include <hidapi.h>
+#include <math.h>
 #include <stdio.h>
 #include <string.h>
 
+#define DEADZONE 0.08f
 #define TIMEOUT_MS 100
 #define DEBUG_RAW  0 // Defina como 1 para ver o buffer completo
 
 static hid_device* handle = NULL;
 
+// Aplica zona morta (deadzone)
+static float apply_deadzone(float value, float deadzone) {
+    return (fabsf(value) < deadzone) ? 0.0f : value;
+}
+
+// Inicializa e detecta controle dinamicamente
 int ps4_init() {
     if (hid_init() != 0) return -1;
 
@@ -54,6 +62,16 @@ int ps4_read_input(ps4_input_t* input) {
     input->right_stick_y = buf[4];
     input -> l2_analog = buf[8];
     input -> r2_analog = buf[9];
+
+    // Normalizados
+    input->norm_left_stick_x  = apply_deadzone(((int)input->left_stick_x - 128) / 127.0f, DEADZONE);
+    input->norm_left_stick_y  = apply_deadzone(((int)input->left_stick_y - 128) / 127.0f, DEADZONE);
+    input->norm_right_stick_x = apply_deadzone(((int)input->right_stick_x - 128) / 127.0f, DEADZONE);
+    input->norm_right_stick_y = apply_deadzone(((int)input->right_stick_y - 128) / 127.0f, DEADZONE);
+    input->norm_l2 = input->l2_analog / 255.0f;
+    input->norm_r2 = input->r2_analog / 255.0f;
+
+
 
     unsigned char b5 = buf[5];
     unsigned char b6 = buf[6];
