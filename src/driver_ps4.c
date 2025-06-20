@@ -3,14 +3,32 @@
 #include <stdio.h>
 #include <string.h>
 
-#define VENDOR_ID 0x054C
-#define PRODUCT_ID 0x09CC
+#define TIMEOUT_MS 100
+#define DEBUG_RAW  0 // Defina como 1 para ver o buffer completo
 
 static hid_device* handle = NULL;
 
 int ps4_init() {
     if (hid_init() != 0) return -1;
-    handle = hid_open(VENDOR_ID, PRODUCT_ID, NULL);
+
+    struct hid_device_info *devices, *current_device;
+    devices = hid_enumerate(0x0, 0x0); // lista todos os dispositivos HID
+
+    const wchar_t *target_manufacturer = L"Sony";
+    const wchar_t *target_product = L"Wireless Controller";
+
+    for (current_device = devices; current_device != NULL; current_device = current_device->next) {
+        if (current_device->manufacturer_string && current_device->product_string) {
+            if (wcsstr(current_device->manufacturer_string, target_manufacturer) && wcsstr(current_device->product_string, target_product)){
+                printf("Controle PS4 encontrado: Vendor ID: %04hx Product ID: %04hx (%ls - %ls)\n", current_device->vendor_id, current_device->product_id,current_device->manufacturer_string, current_device->product_string);
+                handle = hid_open_path(current_device->path);
+                break;
+            }
+        }
+    }
+
+    hid_free_enumeration(devices);
+
     return (handle != NULL) ? 0 : -1;
 }
 
@@ -20,9 +38,15 @@ int ps4_read_input(ps4_input_t* input) {
     unsigned char buf[64];
     memset(input,0,sizeof(ps4_input_t));
 
-    int res = hid_read(handle, buf, sizeof(buf));
+    int res = hid_read_timeout(handle, buf, sizeof(buf), TIMEOUT_MS);
 
     if(res <= 0) return -1;
+
+#if DEBUG_RAW
+    printf("RAW:");
+    for (int i = 0; i < res; i++) printf(" %02X", buf[i]);
+    printf("\n");
+#endif
 
     input->left_stick_x = buf[1];
     input->left_stick_y = buf[2];
