@@ -12,13 +12,22 @@ typedef struct {
     int l3, r3;
     int dpad_up, dpad_down, dpad_left, dpad_right;
 
-    // Analógicos
+    // Valores Direção Cruz  (0-255)
     unsigned char left_stick_x;
     unsigned char left_stick_y;
     unsigned char right_stick_x;
     unsigned char right_stick_y;
     unsigned char l2_analog;
     unsigned char r2_analog;
+
+    // Valores Analógico normalizados [-1.0, 1.0] e [0.0, 1.0] para triggers
+    float norm_left_stick_x;
+    float norm_left_stick_y;
+    float norm_right_stick_x;
+    float norm_right_stick_y;
+    float norm_l2;
+    float norm_r2;
+
 } ps4_input_t;
 
 int ps4_init();
